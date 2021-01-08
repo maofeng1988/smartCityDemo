@@ -118,7 +118,7 @@
             requestAnimationFrame(animate);
             // 渲染我们的场景  摄像机啪啪啪的拍和录
             // 由于把renderer autoClear  关闭了 所以我们要在渲染函数中手动清除
-            // camera.lookAt = objPosition;
+            // camera.lookAt(25, 0, 25);
             stats.update();
             renderer.clear();
             renderer.render(scene, camera);
@@ -174,7 +174,7 @@
         // 将Draco解析器和GltfLoader绑定在一起
         loader.setDRACOLoader(new THREE.DRACOLoader());
         loader.load(
-            "draco_gltf/citysmall.gltf",
+            "draco_gltf/citysmall_from_blender.gltf",
             function(gltf) {
             // gltf.scene 拿到这个可以处理模型
             scene.add(gltf.scene)
