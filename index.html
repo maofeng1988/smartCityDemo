@@ -24,10 +24,15 @@
     <!-- 引入我们可爱的加载器 -->
     <script src="js/loaders/GLTFLoader.js"></script>
     <script src="js/loaders/DRACOLoader.js"></script>
+    <script src="js/controls/OrbitControls.js"></script>
+    <script src="js/stats.min.js"></script>
     <script>
         var camera, scene, renderer;
         var container;
         var ambientLight, pointLight;
+        var controls;
+        var stats;
+        // const objPosition = new THREE.Vector3( 5, 0, 5 );
         
         // 初始化
         init()
@@ -49,7 +54,7 @@
             
             // 初始化场景
             scene = new THREE.Scene();
-        
+
             // 初始化灯光
             // 环境光 能保持整体都是亮点
             ambientLight = new THREE.AmbientLight(0x404040)
@@ -61,10 +66,22 @@
             // 将灯光加到摄像机中 点光源跟随摄像机移动
             // 为什么这样做  因为这样可以让后期处理时的辉光效果更漂亮 
             camera.add(pointLight);
-        
+            // 给场景设置背景图片
+            // scene.background = new THREE.TextureLoader().load("textures/sky.jpg")
+            scene.background = new THREE.CubeTextureLoader()
+              .setPath( 'textures/cubeMaps/' )
+              .load( [
+                'px.png',
+                'nx.png',
+                'py.png',
+                'ny.png',
+                'pz.png',
+                'nz.png'
+              ] );
+            
             // 我们将摄像机加入到场景中
             scene.add(camera);
-        
+            console.log(camera, scene);
             // 初始化渲染器
             renderer = new THREE.WebGLRenderer({
             // 开启抗锯齿
@@ -83,9 +100,15 @@
             renderer.gammaInput = true;
             renderer.gammaOutput = true;
             
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
             // 渲染到DOM中去
             container = document.createElement("div");
             container.appendChild(renderer.domElement);
+
+            //加入帧率信息显示框
+            stats = new Stats();
+            container.appendChild(stats.dom);
+
             document.body.appendChild(container);
         }
         // 这样一来，基础场景创建就完成了，接下来我们来让它循环渲染起来
@@ -95,6 +118,8 @@
             requestAnimationFrame(animate);
             // 渲染我们的场景  摄像机啪啪啪的拍和录
             // 由于把renderer autoClear  关闭了 所以我们要在渲染函数中手动清除
+            // camera.lookAt = objPosition;
+            stats.update();
             renderer.clear();
             renderer.render(scene, camera);
         }
@@ -115,48 +140,48 @@
 
         // OBJ加载流程
 
-        // 加载Mtl贴图文件
-        new THREE.MTLLoader()
-        // 贴图文件的路径 
-        .setPath("models/obj/city_test/")
-        .load("city.mtl", function(materials) {
-        // 看代码意思是预加载
-        materials.preload();
-          debugger
-        // 加载OBJ模型
-        new THREE.OBJLoader()
-            // 设置OBJ模型的材质贴图
-            .setMaterials(materials)
-            .setPath("models/obj/city_test/")
-            .load(
-            "city.obj",
-            function(object) {
-                console.log(object)
-                object.position.y = 2;
-                scene.add(object);
-            },
-            onProgress,
-            onError
-            );
-        });
-
-        // GLTF 加载流程
-
-        // var loader = new THREE.GLTFLoader();
-        // // 这个是Threejs解析draco压缩之后的解析器 
-        // // 它从这里读取解析器JS
-        // THREE.DRACOLoader.setDecoderPath("js/libs/draco/gltf/");
-        // // 将Draco解析器和GltfLoader绑定在一起
-        // loader.setDRACOLoader(new THREE.DRACOLoader());
-        // loader.load(
-        //     "models/obj/hanchuan/city_small1.gltf",
-        //     function(gltf) {
-        //     // gltf.scene 拿到这个可以处理模型
-        //     scene.add(gltf.scene)
+        // // 加载Mtl贴图文件
+        // new THREE.MTLLoader()
+        // // 贴图文件的路径 
+        // .setPath("models/obj/city_test/")
+        // .load("city.mtl", function(materials) {
+        // // 看代码意思是预加载
+        // materials.preload();
+        //   debugger
+        // // 加载OBJ模型
+        // new THREE.OBJLoader()
+        //     // 设置OBJ模型的材质贴图
+        //     .setMaterials(materials)
+        //     .setPath("models/obj/city_test/")
+        //     .load(
+        //     "city.obj",
+        //     function(object) {
+        //         console.log(object)
+        //         object.position.y = 2;
+        //         scene.add(object);
         //     },
         //     onProgress,
         //     onError
-        // );
+        //     );
+        // });
+
+        // GLTF 加载流程
+
+        var loader = new THREE.GLTFLoader();
+        // 这个是Threejs解析draco压缩之后的解析器 
+        // 它从这里读取解析器JS
+        THREE.DRACOLoader.setDecoderPath("js/libs/draco/gltf/");
+        // 将Draco解析器和GltfLoader绑定在一起
+        loader.setDRACOLoader(new THREE.DRACOLoader());
+        loader.load(
+            "draco_gltf/citysmall.gltf",
+            function(gltf) {
+            // gltf.scene 拿到这个可以处理模型
+            scene.add(gltf.scene)
+            },
+            onProgress,
+            onError
+        );
     </script>
     
     
