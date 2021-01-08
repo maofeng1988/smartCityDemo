@@ -1,1 +1,1 @@
-// this is a smartCity demo project base on threejs
+// this is a smartCity demo project based on threejs
