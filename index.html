@@ -59,7 +59,7 @@
             // 环境光 能保持整体都是亮点
             ambientLight = new THREE.AmbientLight(0x404040)
             // 点光源 就像灯泡一样的效果  白色灯光 亮度0.6
-            pointLight = new THREE.PointLight(0xffffff, 0.6);
+            pointLight = new THREE.PointLight(0xffffff, 0.3);
         
             // 将灯光加入到场景中
             scene.add(ambientLight)
@@ -67,17 +67,17 @@
             // 为什么这样做  因为这样可以让后期处理时的辉光效果更漂亮 
             camera.add(pointLight);
             // 给场景设置背景图片
-            // scene.background = new THREE.TextureLoader().load("textures/sky.jpg")
-            scene.background = new THREE.CubeTextureLoader()
-              .setPath( 'textures/cubeMaps/' )
-              .load( [
-                'px.png',
-                'nx.png',
-                'py.png',
-                'ny.png',
-                'pz.png',
-                'nz.png'
-              ] );
+            scene.background = new THREE.TextureLoader().load("textures/sky.jpg")
+            // scene.background = new THREE.CubeTextureLoader()
+            //   .setPath( 'textures/cubeMaps/' )
+            //   .load( [
+            //     'px.png',
+            //     'nx.png',
+            //     'py.png',
+            //     'ny.png',
+            //     'pz.png',
+            //     'nz.png'
+            //   ] );
             
             // 我们将摄像机加入到场景中
             scene.add(camera);
@@ -165,23 +165,61 @@
         //     );
         // });
 
+        // 创建一个立方体纹理
+        var envMap = new THREE.CubeTextureLoader()
+                  .setPath("textures/")
+                  .load(new Array(6).fill("start.jpg"));
+
         // GLTF 加载流程
 
         var loader = new THREE.GLTFLoader();
         // 这个是Threejs解析draco压缩之后的解析器 
         // 它从这里读取解析器JS
-        THREE.DRACOLoader.setDecoderPath("js/libs/draco/gltf/");
+        // THREE.DRACOLoader.setDecoderPath("js/loaders/draco/gltf/");
         // 将Draco解析器和GltfLoader绑定在一起
         loader.setDRACOLoader(new THREE.DRACOLoader());
         loader.load(
-            "draco_gltf/citysmall_from_blender.gltf",
+            "gltf/city.gltf",
             function(gltf) {
             // gltf.scene 拿到这个可以处理模型
+            console.log("gltf: ", gltf);
+            gltf.scene.traverse(function(child) {
+              if(child.isMesh) {
+                console.log(child)
+                // 比如我想给这些加上环境贴图 就可以这样写
+                if(/hai|city|liubianxing|lumian|malu/i.test(child.name)) {
+                  (child.material.envMap = envMap);
+                }
+              
+                if (/city/i.test(child.name)) {
+                  // 更改模型颜色
+                  child.material.color = new THREE.Color(0.2, 0.5, 0.5);
+                  // 更改模型环境贴图影响  0-1
+                  child.material.reflectivity = 0.9;
+                }
+                
+                // 更改模型位置
+                /lumian|hai/i.test(child.name) && (child.position.y = 0.5);
+              }
+            });
             scene.add(gltf.scene)
             },
             onProgress,
             onError
         );
+
+        // 当window窗口变化
+        (function() {
+          window.addEventListener("resize", onWindowResize, false);
+          function onWindowResize() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // composer.setSize(window.innerWidth, window.innerHeight);
+          }
+        })();
     </script>
     
     
