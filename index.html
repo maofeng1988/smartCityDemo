@@ -26,12 +26,23 @@
     <script src="js/loaders/DRACOLoader.js"></script>
     <script src="js/controls/OrbitControls.js"></script>
     <script src="js/stats.min.js"></script>
+    <!-- 引入Effect -->
+    <script src="js/postprocessing/EffectComposer.js"></script>
+    <!-- 引入Effect配套的render -->
+    <script src="js/postprocessing/RenderPass.js"></script>
+    <script src="js/postprocessing/ShaderPass.js"></script>
+    <!-- 引入各种需要的shader -->
+    <script src="js/shaders/CopyShader.js"></script>
+    <script src="js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="js/postprocessing/UnrealBloomPass.js"></script>
     <script>
         var camera, scene, renderer;
         var container;
         var ambientLight, pointLight;
         var controls;
         var stats;
+        var composer;
+        // var clock;
         // const objPosition = new THREE.Vector3( 5, 0, 5 );
         
         // 初始化
@@ -40,6 +51,7 @@
         animate()
         
         function init(){
+            // clock = new THREE.Clock();
             // 初始化相机 
             // 这里使用的是透视相机来模拟人眼看到的效果 近大远小
             camera = new THREE.PerspectiveCamera(
@@ -91,15 +103,47 @@
             });
             // 把自动清除颜色缓存关闭 这个如果不关闭 后期处理这块会不能有效显示
             // 书上的描述是 如果不这样做，每次调用效果组合器的render()函数时，之前渲染的场景会被清理掉。通过这种方法，我们只会在render循环开始时，把所有东西清理一遍。
-            renderer.autoClear = false;
+            // renderer.autoClear = false;
             // 背景透明 配合 alpha
-            renderer.setClearColor(0xffffff, 0);
+            // renderer.setClearColor(0xffffff, 0);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             // 伽马值启动 更像人眼观察的场景
             renderer.gammaInput = true;
             renderer.gammaOutput = true;
             
+
+            // 初始化renderPass
+            var renderScene = new THREE.RenderPass(scene, camera);
+        
+            // 初始化bloomPass 
+            var bloomPass = new THREE.UnrealBloomPass(
+              // 没研究过这些参数的意义 会提上日程
+              new THREE.Vector2(window.innerWidth, window.innerHeight),
+              1.5,
+              0.4,
+              0.85
+            );
+            // 一些参数 可以调整看效果
+            bloomPass.threshold = 0.1;
+            bloomPass.strength = 2.0;
+            bloomPass.radius = 0;
+
+            // effectCopy
+            var effectCopy = new THREE.ShaderPass(THREE.CopyShader);
+            // 让effectCopy渲染到屏幕上 没这句不会再屏幕上渲染
+            effectCopy.renderToScreen = true;
+          
+            // 初始化 composer
+            composer = new THREE.EffectComposer(renderer);
+            // 模版缓冲（stencil buffer） https://blog.csdn.net/silangquan/article/details/46608915
+            composer.renderTarget1.stencilBuffer = true;
+            composer.renderTarget2.stencilBuffer = true;
+            composer.setSize(window.innerWidth, window.innerHeight);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+            composer.addPass(effectCopy);
+            console.log("composer: ", composer);
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             // 渲染到DOM中去
             container = document.createElement("div");
@@ -111,7 +155,7 @@
 
             document.body.appendChild(container);
         }
-        // 这样一来，基础场景创建就完成了，接下来我们来让它循环渲染起来
+      // 这样一来，基础场景创建就完成了，接下来我们来让它循环渲染起来
         
         function animate() {
             // 这个方法低版本浏览器兼容不好 可以从github上找些兼容库 如果要兼容低版本浏览器
@@ -120,8 +164,11 @@
             // 由于把renderer autoClear  关闭了 所以我们要在渲染函数中手动清除
             // camera.lookAt(25, 0, 25);
             stats.update();
-            renderer.clear();
-            renderer.render(scene, camera);
+            // renderer.clear();
+            // 删除renderer使用composerrender去渲染
+            // renderer.render(scene, camera);
+            
+            composer.render();
         }
         // ok 基础部分完成 接下来我们来加载模型
 
@@ -179,23 +226,31 @@
         // 将Draco解析器和GltfLoader绑定在一起
         loader.setDRACOLoader(new THREE.DRACOLoader());
         loader.load(
-            "gltf/city.gltf",
+            "draco_gltf/citysmall_from_blender.gltf",
             function(gltf) {
             // gltf.scene 拿到这个可以处理模型
             console.log("gltf: ", gltf);
             gltf.scene.traverse(function(child) {
               if(child.isMesh) {
-                console.log(child)
+                debugger
+                // console.log(child)
                 // 比如我想给这些加上环境贴图 就可以这样写
                 if(/hai|city|liubianxing|lumian|malu/i.test(child.name)) {
                   (child.material.envMap = envMap);
                 }
               
-                if (/city/i.test(child.name)) {
+                if (/city_[3-8]/i.test(child.name)) {
                   // 更改模型颜色
-                  child.material.color = new THREE.Color(0.2, 0.5, 0.5);
+                  child.material.color = new THREE.Color(0.0, 0.4, 2);
                   // 更改模型环境贴图影响  0-1
                   child.material.reflectivity = 0.9;
+                }
+
+                if (/city_1/i.test(child.name)) {
+                  // 更改模型颜色
+                  child.material.color = new THREE.Color(0.0, 1.0, 0.6);
+                  // 更改模型环境贴图影响  0-1
+                  child.material.reflectivity = 0.5;
                 }
                 
                 // 更改模型位置
