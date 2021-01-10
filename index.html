@@ -35,6 +35,8 @@
     <script src="js/shaders/CopyShader.js"></script>
     <script src="js/shaders/LuminosityHighPassShader.js"></script>
     <script src="js/postprocessing/UnrealBloomPass.js"></script>
+
+    <script src="js/libs/dat.gui.min.js"></script>
     <script>
         var camera, scene, renderer;
         var container;
@@ -42,6 +44,14 @@
         var controls;
         var stats;
         var composer;
+
+        var params = {
+          exposure: 1,
+          bloomStrength: 1.9,
+          bloomThreshold: 0.3,
+          bloomRadius: 0,
+          light: 0.1
+        };
         // var clock;
         // const objPosition = new THREE.Vector3( 5, 0, 5 );
         
@@ -126,7 +136,7 @@
             );
             // 一些参数 可以调整看效果
             bloomPass.threshold = 0.1;
-            bloomPass.strength = 2.0;
+            bloomPass.strength = 1.0;
             bloomPass.radius = 0;
 
             // effectCopy
@@ -154,7 +164,51 @@
             container.appendChild(stats.dom);
 
             document.body.appendChild(container);
+
+            // 初始化 gui
+            (function() {
+              var gui = new dat.GUI();
+
+              gui.add(params, "exposure", 0.1, 2.0).onChange(function(value) {
+                renderer.toneMappingExposure = Math.pow(value, 4.0);
+              });
+
+              gui.add(params, "bloomThreshold", 0.0, 1.0).onChange(function(value) {
+                bloomPass.threshold = Number(value);
+              });
+
+              gui.add(params, "bloomStrength", 0.0, 20.0).onChange(function(value) {
+                bloomPass.strength = Number(value);
+              });
+              gui.add(params, "light", 0.0, 1.0).onChange(function(value) {
+                bloomPass.light = Number(value);
+              });
+
+              gui
+                .add(params, "bloomRadius", 0.0, 1.0)
+                .step(0.01)
+                .onChange(function(value) {
+                  bloomPass.radius = Number(value);
+                });
+            })();
         }
+
+        var textured = new THREE.TextureLoader().load("textures/warning.png");
+        var spriteMaterial = new THREE.SpriteMaterial({
+          // color: 0xffffff,
+          map: textured
+        });
+        var sprite = new THREE.Sprite(spriteMaterial);
+        sprite.position.set(
+          4.329931791092394,
+          12.179400757773436,
+          7.07142388020101
+        );
+        // console.log(sprite);
+        sprite.scale.x = 10;
+        sprite.scale.y = 5;
+
+        scene.add(sprite);
       // 这样一来，基础场景创建就完成了，接下来我们来让它循环渲染起来
         
         function animate() {
@@ -194,7 +248,7 @@
         // .load("city.mtl", function(materials) {
         // // 看代码意思是预加载
         // materials.preload();
-        //   debugger
+        //   
         // // 加载OBJ模型
         // new THREE.OBJLoader()
         //     // 设置OBJ模型的材质贴图
@@ -232,7 +286,7 @@
             console.log("gltf: ", gltf);
             gltf.scene.traverse(function(child) {
               if(child.isMesh) {
-                debugger
+                
                 // console.log(child)
                 // 比如我想给这些加上环境贴图 就可以这样写
                 if(/hai|city|liubianxing|lumian|malu/i.test(child.name)) {
@@ -241,7 +295,7 @@
               
                 if (/city_[3-8]/i.test(child.name)) {
                   // 更改模型颜色
-                  child.material.color = new THREE.Color(0.0, 0.4, 2);
+                  child.material.color = new THREE.Color(0.0, 0.4, 1.5);
                   // 更改模型环境贴图影响  0-1
                   child.material.reflectivity = 0.9;
                 }
