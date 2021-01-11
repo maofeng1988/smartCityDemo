@@ -44,6 +44,7 @@
         var controls;
         var stats;
         var composer;
+        var octahedron;
 
         var params = {
           exposure: 1,
@@ -158,7 +159,50 @@
             // 渲染到DOM中去
             container = document.createElement("div");
             container.appendChild(renderer.domElement);
+            
+            // 创建光柱
+            const rangeMap = new THREE.TextureLoader().load("textures/range.png")
+            const cylinderBufferGeometry = new THREE.CylinderBufferGeometry(
+              1.5,
+              1.5,
+              8,
+              12,
+              1,
+              true
+            );
 
+            const rampMaterial = new THREE.MeshBasicMaterial({
+              color:"#54C41D",
+              map: rangeMap,
+              side: THREE.DoubleSide,
+              transparent: true,
+              depthWrite: false,
+              opacity: 0.3
+            });
+            
+            const cylinder = new THREE.Mesh(cylinderBufferGeometry, rampMaterial);
+            // cylinder.rotation.x = (Math.PI / 180) * -180;
+            cylinder.position.z = -2;
+            cylinder.position.y = 4;
+            scene.add(cylinder);
+
+            //加入八面体棱柱
+            const octgeometry = new THREE.OctahedronBufferGeometry();
+            const octMaterial = new THREE.MeshBasicMaterial({
+                                      color: "#54C41D",
+                                      transparent: true,
+                                      opacity: 0.3
+                                    });
+            const octLineMaterial = new THREE.LineBasicMaterial({
+                                      color: "#54C41D",
+                                      depthFunc: THREE.AlwaysDepth
+                                    });
+            octahedron = new THREE.Mesh(octgeometry, octMaterial);
+            const line = new THREE.LineSegments(octgeometry, octLineMaterial);  
+            octahedron.add(line);  
+            octahedron.position.z = -2;
+            octahedron.position.y = 10;      
+            scene.add(octahedron);     
             //加入帧率信息显示框
             stats = new Stats();
             container.appendChild(stats.dom);
@@ -217,6 +261,7 @@
             // 渲染我们的场景  摄像机啪啪啪的拍和录
             // 由于把renderer autoClear  关闭了 所以我们要在渲染函数中手动清除
             // camera.lookAt(25, 0, 25);
+            octahedron.rotation.y = octahedron.rotation.y + 0.02;
             stats.update();
             // renderer.clear();
             // 删除renderer使用composerrender去渲染
